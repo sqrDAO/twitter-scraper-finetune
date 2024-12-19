@@ -2,38 +2,39 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import TwitterPipeline from './TwitterPipeline.js';
+import TwitterCrawlAPI from './TwitterCrawlAPI.js';
 import Logger from './Logger.js';
 
-process.on('unhandledRejection', (error) => {
-  Logger.error(`❌ Unhandled promise rejection: ${error.message}`);
+// ... (Error handling remains the same)
+
+
+// Argument parsing (removed - using env variables only)
+const username = process.env.TWITTER_USERNAME; // Twitter username (User ID) from .env
+const apiKey = process.env.RAPIDAPI_KEY;   // RapidAPI key from .env
+
+
+if (!username) {
+  Logger.error('❌ Please provide a Twitter username (user ID) in the .env file');
   process.exit(1);
-});
+}
 
-process.on('uncaughtException', (error) => {
-  Logger.error(`❌ Uncaught exception: ${error.message}`);
+if (!apiKey) {
+  Logger.error('❌ Please provide a RapidAPI key in the .env file');
   process.exit(1);
-});
+}
 
-const args = process.argv.slice(2);
-const username = args[0] || 'degenspartan';
 
-const pipeline = new TwitterPipeline(username);
+// ... (Rest of the code remains the same - initialization, cleanup, running collection)
 
-const cleanup = async () => {
-  Logger.warn('\n🛑 Received termination signal. Cleaning up...');
-  try {
-    if (pipeline.scraper) {
-      await pipeline.scraper.logout();
-      Logger.success('🔒 Logged out successfully.');
-    }
-  } catch (error) {
-    Logger.error(`❌ Error during cleanup: ${error.message}`);
-  }
-  process.exit(0);
-};
+const twitterCrawl = new TwitterCrawlAPI(username, apiKey);
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+// ... (cleanup function and signal handling)
 
-pipeline.run().catch(() => process.exit(1));
+
+twitterCrawl.collectTweets()
+  .then(analytics => {
+    // ... (handling results and exit)
+  })
+  .catch(error => {
+    // ... (error handling and exit)
+  });

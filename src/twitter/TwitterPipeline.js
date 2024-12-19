@@ -106,6 +106,10 @@ class TwitterPipeline {
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, "webdriver", { get: () => undefined });
     });
+
+    page.on('console', (message) => {
+      console.log(`${message.type().toUpperCase()}: ${message.text()}`);
+    });
   }
 
   async validateEnvironment() {
@@ -125,7 +129,7 @@ class TwitterPipeline {
     Logger.stopSpinner();
   }
 
-async loadCookies() {
+  async loadCookies() {
     try {
       if (await fs.access(this.paths.cookies).catch(() => false)) {
         const cookiesData = await fs.readFile(this.paths.cookies, 'utf-8');
@@ -137,9 +141,9 @@ async loadCookies() {
       Logger.warn(`Failed to load cookies: ${error.message}`);
     }
     return false;
-}
+  }
 
-async saveCookies() {
+  async saveCookies() {
     try {
       const cookies = await this.scraper.getCookies();
       // Create cookies directory if it doesn't exist
@@ -149,7 +153,7 @@ async saveCookies() {
     } catch (error) {
       Logger.warn(`Failed to save cookies: ${error.message}`);
     }
-}
+  }
 
 
   async initializeScraper() {
@@ -306,8 +310,7 @@ async saveCookies() {
     const delay = Math.min(exponentialDelay + jitter, maxDelay);
 
     Logger.warn(
-      `⚠️  Rate limit hit - waiting ${
-        delay / 1000
+      `⚠️  Rate limit hit - waiting ${delay / 1000
       } seconds (attempt ${retryCount})`
     );
 
@@ -446,9 +449,12 @@ async saveCookies() {
               .filter((t) => t && t.id);
           });
 
+          console.log("Hello: ");
+
           for (const tweet of newTweets) {
             if (!tweets.has(tweet.id)) {
               tweets.add(tweet);
+              console.log(tweet.text);
               this.stats.fallbackCount++;
             }
           }
@@ -589,10 +595,9 @@ async saveCookies() {
       }
 
       Logger.success(
-        `\n🎉 Collection complete! ${allTweets.size.toLocaleString()} unique tweets collected${
-          this.stats.fallbackUsed
-            ? ` (including ${this.stats.fallbackCount} from fallback)`
-            : ""
+        `\n🎉 Collection complete! ${allTweets.size.toLocaleString()} unique tweets collected${this.stats.fallbackUsed
+          ? ` (including ${this.stats.fallbackCount} from fallback)`
+          : ""
         }`
       );
 
