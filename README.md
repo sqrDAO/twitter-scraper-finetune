@@ -7,11 +7,13 @@ Pipeline for generating AI character files and training datasets by scraping pub
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Copy the `.env.example` into a `.env` file:
+
    ```properties
    # (Required) Twitter Authentication
    TWITTER_USERNAME=     # your twitter username
@@ -31,38 +33,53 @@ Pipeline for generating AI character files and training datasets by scraping pub
 ## Usage
 
 ### Twitter Collection
+
 ```bash
 npm run twitter -- username
 ```
+
 Example: `npm run twitter -- pmarca`
 
+Add get full text tweet use case to `twitter/TwitterCrawlAPI.js`
+
+```javascript
+  async getFullTextTweet(tweetId) {}
+```
+
 ### Blog Collection
+
 ```bash
 npm run blog
 ```
 
 ### Generate Character
+
 ```bash
 npm run character -- username
 ```
+
 Example: `npm run character -- pmarca`
 
 ### Finetune
+
 ```bash
 npm run finetune
 ```
 
 ### Finetune (with test)
+
 ```bash
 npm run finetune:test
 ```
 
 ### Generate Virtuals Character Card
+
 https://whitepaper.virtuals.io/developer-documents/agent-contribution/contribute-to-cognitive-core#character-card-and-goal-samples
 
-Run this after Twitter Collection step 
+Run this after Twitter Collection step
+
 ```bash
-npm run generate-virtuals -- username date 
+npm run generate-virtuals -- username date
 ```
 
 Example: `npm run generate-virtuals -- pmarca 2024-11-29`

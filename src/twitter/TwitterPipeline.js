@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import Logger from "./Logger.js";
 import DataOrganizer from "./DataOrganizer.js";
 import TweetFilter from "./TweetFilter.js";
+import TwitterCrawlAPI from "./TwitterCrawlAPI.js";
 
 // agent-twitter-client
 import { Scraper, SearchMode } from "agent-twitter-client";
@@ -28,11 +29,12 @@ class TwitterPipeline {
     this.dataOrganizer = new DataOrganizer("pipeline", username);
     this.paths = this.dataOrganizer.getPaths();
     this.tweetFilter = new TweetFilter();
+    this.twitterCrawlAPI = new TwitterCrawlAPI(username, process.env.RAPIDAPI_KEY);
 
     // Update cookie path to be in top-level cookies directory
     this.paths.cookies = path.join(
       process.cwd(),
-      'cookies',
+      "cookies",
       `${process.env.TWITTER_USERNAME}_cookies.json`
     );
 
@@ -107,7 +109,7 @@ class TwitterPipeline {
       Object.defineProperty(navigator, "webdriver", { get: () => undefined });
     });
 
-    page.on('console', (message) => {
+    page.on("console", (message) => {
       console.log(`${message.type().toUpperCase()}: ${message.text()}`);
     });
   }
@@ -132,7 +134,7 @@ class TwitterPipeline {
   async loadCookies() {
     try {
       if (await fs.access(this.paths.cookies).catch(() => false)) {
-        const cookiesData = await fs.readFile(this.paths.cookies, 'utf-8');
+        const cookiesData = await fs.readFile(this.paths.cookies, "utf-8");
         const cookies = JSON.parse(cookiesData);
         await this.scraper.setCookies(cookies);
         return true;
@@ -149,12 +151,11 @@ class TwitterPipeline {
       // Create cookies directory if it doesn't exist
       await fs.mkdir(path.dirname(this.paths.cookies), { recursive: true });
       await fs.writeFile(this.paths.cookies, JSON.stringify(cookies));
-      Logger.success('Saved authentication cookies');
+      Logger.success("Saved authentication cookies");
     } catch (error) {
       Logger.warn(`Failed to save cookies: ${error.message}`);
     }
   }
-
 
   async initializeScraper() {
     Logger.startSpinner("Initializing Twitter scraper");
@@ -179,7 +180,9 @@ class TwitterPipeline {
     const email = process.env.TWITTER_EMAIL;
 
     if (!username || !password || !email) {
-      Logger.error("Missing required credentials. Need username, password, AND email");
+      Logger.error(
+        "Missing required credentials. Need username, password, AND email"
+      );
       Logger.stopSpinner(false);
       return false;
     }
@@ -203,7 +206,6 @@ class TwitterPipeline {
         } else {
           throw new Error("Login verification failed");
         }
-
       } catch (error) {
         retryCount++;
         Logger.warn(
@@ -216,7 +218,8 @@ class TwitterPipeline {
         }
 
         // Exponential backoff with jitter
-        const baseDelay = this.config.twitter.retryDelay * Math.pow(2, retryCount - 1);
+        const baseDelay =
+          this.config.twitter.retryDelay * Math.pow(2, retryCount - 1);
         const maxJitter = baseDelay * 0.2; // 20% jitter
         const jitter = Math.floor(Math.random() * maxJitter);
         await this.randomDelay(baseDelay + jitter, baseDelay + jitter + 5000);
@@ -224,7 +227,6 @@ class TwitterPipeline {
     }
     return false;
   }
-
 
   async randomDelay(min, max) {
     // Gaussian distribution for more natural delays
@@ -236,7 +238,7 @@ class TwitterPipeline {
 
     const delay = Math.floor(min + gaussianRand() * (max - min));
     Logger.info(`Waiting ${(delay / 1000).toFixed(1)} seconds...`);
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   /*
@@ -310,7 +312,8 @@ class TwitterPipeline {
     const delay = Math.min(exponentialDelay + jitter, maxDelay);
 
     Logger.warn(
-      `⚠️  Rate limit hit - waiting ${delay / 1000
+      `⚠️  Rate limit hit - waiting ${
+        delay / 1000
       } seconds (attempt ${retryCount})`
     );
 
@@ -504,6 +507,8 @@ class TwitterPipeline {
 
         for await (const tweet of searchResults) {
           if (tweet && !allTweets.has(tweet.id)) {
+            tweet.text = await this.twitterCrawlAPI.getFullTextTweet(tweet.id);
+
             const processedTweet = this.processTweetData(tweet);
             if (processedTweet) {
               allTweets.set(tweet.id, processedTweet);
@@ -546,8 +551,12 @@ class TwitterPipeline {
               `from:${this.username}`
             );
 
-            fallbackTweets.forEach((tweet) => {
+            fallbackTweets.forEach(async (tweet) => {
               if (!allTweets.has(tweet.id)) {
+                tweet.text = await this.twitterCrawlAPI.getFullTextTweet(
+                  tweet.id
+                );
+
                 const processedTweet = this.processTweetData(tweet);
                 if (processedTweet) {
                   allTweets.set(tweet.id, processedTweet);
@@ -573,8 +582,10 @@ class TwitterPipeline {
           );
           let newTweetsCount = 0;
 
-          fallbackTweets.forEach((tweet) => {
+          fallbackTweets.forEach(async (tweet) => {
             if (!allTweets.has(tweet.id)) {
+              tweet.text = await this.twitterCrawlAPI.getFullTextTweet(tweet.id);
+
               const processedTweet = this.processTweetData(tweet);
               if (processedTweet) {
                 allTweets.set(tweet.id, processedTweet);
@@ -595,9 +606,10 @@ class TwitterPipeline {
       }
 
       Logger.success(
-        `\n🎉 Collection complete! ${allTweets.size.toLocaleString()} unique tweets collected${this.stats.fallbackUsed
-          ? ` (including ${this.stats.fallbackCount} from fallback)`
-          : ""
+        `\n🎉 Collection complete! ${allTweets.size.toLocaleString()} unique tweets collected${
+          this.stats.fallbackUsed
+            ? ` (including ${this.stats.fallbackCount} from fallback)`
+            : ""
         }`
       );
 
