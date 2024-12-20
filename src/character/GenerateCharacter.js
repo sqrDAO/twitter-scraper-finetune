@@ -7,11 +7,7 @@ class TweetProcessor {
   constructor(username, date) {
     this.username = username.toLowerCase();
     this.date = date;
-    this.baseDir = path.join(
-      "pipeline",
-      username,
-      date
-    );
+    this.baseDir = path.join("pipeline", username, date);
     this.characterFile = path.join("characters", `${username}.json`);
   }
 
@@ -39,9 +35,7 @@ class TweetProcessor {
       bio: [
         "shape rotator nerd with a penchant for breaking into particle accelerators...",
       ],
-      lore: [
-        "once spent a month living entirely in VR...",
-      ],
+      lore: ["once spent a month living entirely in VR..."],
       knowledge: [
         // Will be populated based on topics and expertise detected in tweets
       ],
@@ -62,18 +56,9 @@ class TweetProcessor {
         ],
       ],
       postExamples: [],
-      adjectives: [
-        "funny",
-        "intelligent",
-        "academic",
-        "insightful",
-      ],
+      adjectives: ["funny", "intelligent", "academic", "insightful"],
       people: [],
-      topics: [
-        "metaphysics",
-        "quantum physics",
-        "philosophy",
-      ],
+      topics: ["metaphysics", "quantum physics", "philosophy"],
       style: {
         all: [
           "very short responses",
@@ -97,8 +82,8 @@ class TweetProcessor {
           "talk about yourself and what you're thinking about or doing",
           "make people think, don't criticize them or make them feel bad",
           "engage in way that gives the other person space to continue the conversation",
-        ]
-      }
+        ],
+      },
     };
   }
 
@@ -149,7 +134,9 @@ class TweetProcessor {
 
   async processTweets() {
     try {
-      console.log(`Processing tweets for ${this.username} from date ${this.date}`);
+      console.log(
+        `Processing tweets for ${this.username} from date ${this.date}`
+      );
 
       const tweetsPath = path.join(
         this.baseDir,
@@ -161,7 +148,9 @@ class TweetProcessor {
       try {
         await fs.access(tweetsPath);
       } catch (error) {
-        throw new Error(`No processed tweets found for ${this.username} on ${this.date}`);
+        throw new Error(
+          `No processed tweets found for ${this.username} on ${this.date}`
+        );
       }
 
       const tweets = await this.readJsonlFile(tweetsPath);
@@ -169,37 +158,38 @@ class TweetProcessor {
 
       let characterData = await this.loadCharacterData();
 
-      const filteredTweets = tweets.filter((tweet) => {
-        if (!tweet.text) {
-          console.log(
-            `Filtered out tweet with no text: ${JSON.stringify(tweet)}`
-          );
-          return false;
-        }
-        return true;
-      }).filter((tweet) => {
-        if (tweet.text.startsWith("RT @")) {
-          console.log(`Filtered out retweet: ${tweet.text}`);
-          return false;
-        }
-        return true;
-      }).map((tweet) => {
-        return {
-          ...tweet,
-          text: tweet.text.replace(/@\S+/g, "").trim(),
-        };
-      });
+      const filteredTweets = tweets
+        .filter((tweet) => {
+          if (!tweet.text) {
+            console.log(
+              `Filtered out tweet with no text: ${JSON.stringify(tweet)}`
+            );
+            return false;
+          }
+          return true;
+        })
+        .filter((tweet) => {
+          if (tweet.text.startsWith("RT @")) {
+            console.log(`Filtered out retweet: ${tweet.text}`);
+            return false;
+          }
+          return true;
+        })
+        .map((tweet) => {
+          return {
+            ...tweet,
+            text: tweet.text.replace(/@\S+/g, "").trim(),
+          };
+        });
 
       // Process tweets into postExamples - take all unique tweets
       const uniqueTweets = Array.from(
         new Set(filteredTweets.map((tweet) => tweet.text))
       );
-      characterData.postExamples = uniqueTweets
-        .filter(
-          (text) =>
-            text.length >= 20 &&
-            text.length <= 280
-        );
+      characterData.postExamples = uniqueTweets.filter(
+        (text) => text.length >= 20 //&&
+        // text.length <= 280
+      );
 
       // Extract topics
       const topics = new Set();
@@ -241,7 +231,9 @@ class TweetProcessor {
       );
 
       console.log(`✅ Successfully processed tweets for ${this.username}`);
-      console.log(`📝 Added ${characterData.postExamples.length} post examples`);
+      console.log(
+        `📝 Added ${characterData.postExamples.length} post examples`
+      );
       console.log(`📝 Extracted ${characterData.topics.length} topics`);
     } catch (error) {
       console.error(`Failed to process tweets: ${error.message}`);
