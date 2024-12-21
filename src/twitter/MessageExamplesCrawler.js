@@ -51,25 +51,33 @@ class MessageExamplesCrawler {
             const quotedMessageExample = this.processQuotedTweet(
                 conversationList[0]
             );
-            this.messageExamples.push(quotedMessageExample);
+            // ignore the quoted tweet if it's empty or contains only 1 tweet
+            if (quotedMessageExample.length > 1) {
+                this.messageExamples.push(quotedMessageExample);
+            }
         }
 
         // process the rest of the conversation list
         let startIndex = isQuotedTweet ? 1 : 0;
         for (let i = startIndex; i < conversationList.length; i++) {
             const messageExample = this.processTweet(conversationList[i]);
-            this.messageExamples.push(messageExample);
+            // ignore the tweet if it's empty or contains only 1 tweet
+            if (messageExample.length > 1) {
+                this.messageExamples.push(messageExample);
+            }
         }
     }
 
     processTweet(tweet) {
-        console.log("tweet: ", JSON.stringify(tweet));
         const messageExample = [];
 
         // the other tweet contains a list of tweets, so we need to loop through them
-        const tweetList = tweet["content"]["items"];
 
-        // TODO: we need to handle the case when there is only one tweet in the list
+        // but if the tweet contains only 1 tweet or empty, we can ignore it
+        if (!tweet["content"]["items"]) {
+            return messageExample;
+        }
+        const tweetList = tweet["content"]["items"];
 
         // we will ignore the advertisement tweets, they are the tweets having `promotedMetadata` field
         let str = "" + JSON.stringify(tweetList);
@@ -112,7 +120,6 @@ class MessageExamplesCrawler {
     }
 
     processQuotedTweet(quotedTweet) {
-        console.log("quotedTweet: ", JSON.stringify(quotedTweet));
         const messageExample = [];
 
         // get the quoted tweet information
