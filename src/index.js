@@ -20,9 +20,6 @@ app.use(cors());
 // Enable caching for all routes
 let logs = [];
 
-// Declare pipeline
-const pipeline = new TwitterPipeline();
-
 // Middleware to capture console logs
 const originalLog = console.log;
 console.log = (...args) => {
@@ -93,6 +90,9 @@ app.post("/api/characters", async (req, res) => {
     });
 
   console.log(`Received username: ${username}`);
+  // Declare pipeline
+  const pipeline = new TwitterPipeline();
+
   await pipeline.initializeOrganizer(username);
   await pipeline.initializeScraper(username);
   if ((await isRawTweetsFileExists(pipeline.paths.raw.tweets)) && !is_crawl) {
